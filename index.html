@@ -2,7 +2,7 @@
 <html lang="lv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <title>Mutiskā tulkojuma apstiprinājuma veidlapa</title>
 
     <!-- PDF and HTML processing libraries -->
@@ -31,7 +31,7 @@
             margin: 0 auto 10px;
         }
         .hide-in-pdf {
-            display: block; /* Image is visible in online form */
+            display: block;
         }
         label {
             display: block;
@@ -58,7 +58,7 @@
         canvas {
             border: 1px solid black;
             height: 200px;
-            touch-action: none; /* Prevent default touch behavior */
+            touch-action: none;
             background: white;
         }
         .hide-in-pdf button {
@@ -82,15 +82,12 @@
 </head>
 <body>
     <div class="container" id="form-container">
-        <!-- Skrivanek logo (visible only in online form) -->
         <div class="hide-in-pdf">
-            <img id="logo" class="logo" src="https://raw.githubusercontent.com/ivarsskrivanek/tests-veidlapa_2/main/Skrivanek_Logo.jpg" 
-                 alt="Skrivanek Logo">
+            <img id="logo" class="logo" src="https://raw.githubusercontent.com/ivarsskrivanek/tests-veidlapa_2/main/Skrivanek_Logo.jpg" alt="Skrivanek Logo">
         </div>
-        
+
         <h2>Mutiskā tulkojuma apstiprinājuma veidlapa</h2>
 
-        <!-- DESCRIPTION TEXT -->
         <p>
             <span class="readonly-text">Ar šo apstiprinu, ka </span>
             <span class="editable-text" contenteditable="true" id="translator-name">VĀRDS UZVĀRDS</span>
@@ -105,7 +102,7 @@
 
         <h3>Klienta paraksts:</h3>
         <canvas id="signature-pad" width="500" height="200"></canvas>
-        
+
         <label for="client-name">Klienta vārds, uzvārds:</label>
         <input type="text" id="client-name" class="client-name" placeholder="Ievadiet savu vārdu un uzvārdu">
 
@@ -119,7 +116,14 @@
         const canvas = document.getElementById('signature-pad');
         const ctx = canvas.getContext('2d');
         let drawing = false;
+        let lastPos;
         let logoBase64 = "";
+
+        // Set initial white background
+        function initCanvasBackground() {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         function getCursorPosition(event) {
             const rect = canvas.getBoundingClientRect();
@@ -133,6 +137,8 @@
             event.preventDefault();
             drawing = true;
             lastPos = getCursorPosition(event);
+            ctx.strokeStyle = "blue";
+            ctx.lineWidth = 2;
         }
 
         function stopDrawing(event) {
@@ -153,37 +159,68 @@
 
         function clearSignature() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            initCanvasBackground();
+        }
+
+        function formatDateTime(datetimeStr) {
+            const date = new Date(datetimeStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}.${month}.${year}. ${hours}.${minutes}`;
         }
 
         async function saveAsPDF() {
             const formElement = document.getElementById("form-container");
             const buttons = document.querySelector(".hide-in-pdf");
 
-            // Hide image and buttons before capturing PDF
             document.getElementById("logo").style.display = "none";
             buttons.style.display = "none";
 
+            // Add formatted date text to DOM temporarily
+            const startTime = document.getElementById('start-time').value;
+            const endTime = document.getElementById('end-time').value;
+
+            const startLabel = document.createElement('div');
+            startLabel.innerText = "Sākuma laiks: " + formatDateTime(startTime);
+            formElement.appendChild(startLabel);
+
+            const endLabel = document.createElement('div');
+            endLabel.innerText = "Beigu laiks: " + formatDateTime(endTime);
+            formElement.appendChild(endLabel);
+
+            const clientName = document.getElementById("client-name").value;
+            const nameReplacement = document.createElement("div");
+            nameReplacement.innerText = "Klienta vārds, uzvārds: " + clientName;
+            nameReplacement.style.marginTop = "10px";
+            formElement.appendChild(nameReplacement);
+
             let canvasImage = await html2canvas(formElement, { scale: 2 });
 
+            document.getElementById("logo").style.display = "block";
             buttons.style.display = "block";
-            document.getElementById("logo").style.display = "block"; // Show it again for web view
 
             const { jsPDF } = window.jspdf;
             let pdf = new jsPDF("p", "mm", "a4");
 
-            // Add only one image manually using Base64, centered horizontally
             if (logoBase64) {
                 let pageWidth = pdf.internal.pageSize.getWidth();
                 let imgWidth = 75;
-                let imgX = (pageWidth - imgWidth) / 2; // Center the image
+                let imgX = (pageWidth - imgWidth) / 2;
                 pdf.addImage(logoBase64, "PNG", imgX, 10, imgWidth, 25);
             }
 
             let imgWidth = 190;
             let imgHeight = (canvasImage.height * imgWidth) / canvasImage.width;
             pdf.addImage(canvasImage.toDataURL("image/png"), "PNG", 10, 50, imgWidth, imgHeight);
-
             pdf.save("Mutiska_tulkojuma_apstiprinajums.pdf");
+
+            // Clean up temporary DOM elements
+            formElement.removeChild(startLabel);
+            formElement.removeChild(endLabel);
+            formElement.removeChild(nameReplacement);
         }
 
         function loadLogo() {
@@ -193,7 +230,7 @@
                     let reader = new FileReader();
                     reader.onloadend = function () {
                         document.getElementById("logo").src = reader.result;
-                        logoBase64 = reader.result; // Save Base64 for PDF
+                        logoBase64 = reader.result;
                     };
                     reader.readAsDataURL(blob);
                 })
@@ -202,6 +239,7 @@
 
         window.onload = function() {
             loadLogo();
+            initCanvasBackground();
         };
 
         canvas.addEventListener('mousedown', startDrawing);
