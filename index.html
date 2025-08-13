@@ -1,254 +1,261 @@
 <!DOCTYPE html>
 <html lang="lv">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-    <title>Mutiskā tulkojuma apstiprinājuma veidlapa</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>Mutiskā tulkojuma apstiprinājuma veidlapa</title>
 
-    <!-- PDF and HTML processing libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-        }
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background: white;
-            padding: 20px;
-            margin: auto;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .logo {
-            width: 150px;
-            display: block;
-            margin: 0 auto 10px;
-        }
-        .hide-in-pdf {
-            display: block;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .readonly-text {
-            font-weight: bold;
-        }
-        .editable-text {
-            border: none;
-            font-weight: bold;
-            font-size: 16px;
-            width: auto;
-            display: inline;
-            outline: none;
-            color: blue;
-        }
-        input, canvas, .client-name {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-        }
-        canvas {
-            border: 1px solid black;
-            height: 200px;
-            touch-action: none;
-            background: white;
-        }
-        .hide-in-pdf button {
-            display: block;
-            margin-top: 10px;
-            padding: 10px;
-            width: 100%;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-        }
-        .clear-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-        .pdf-btn {
-            background-color: #007bff;
-            color: white;
-        }
-    </style>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+    }
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      padding: 20px;
+      margin: auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      width: 150px;
+      display: block;
+      margin: 0 auto 10px;
+    }
+    .hide-in-pdf {
+      display: block;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .readonly-text {
+      font-weight: bold;
+    }
+    .editable-text {
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      width: auto;
+      display: inline;
+      outline: none;
+      color: blue;
+    }
+    input, canvas {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    canvas {
+      border: 1px solid black;
+      height: 200px;
+      touch-action: none;
+      background: white;
+    }
+    .hide-in-pdf button {
+      display: block;
+      margin-top: 10px;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+    }
+    .clear-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+    .pdf-btn {
+      background-color: #007bff;
+      color: white;
+    }
+
+    /* Added to keep replacement same style */
+    .pdf-only-name {
+      margin-top: 5px;
+      font-weight: normal;
+    }
+  </style>
 </head>
 <body>
-    <div class="container" id="form-container">
-        <div class="hide-in-pdf">
-            <img id="logo" class="logo" src="https://raw.githubusercontent.com/ivarsskrivanek/tests-veidlapa_2/main/Skrivanek_Logo.jpg" alt="Skrivanek Logo">
-        </div>
-
-        <h2>Mutiskā tulkojuma apstiprinājuma veidlapa</h2>
-
-        <p>
-            <span class="readonly-text">Ar šo apstiprinu, ka </span>
-            <span class="editable-text" contenteditable="true" id="translator-name">VĀRDS UZVĀRDS</span>
-            <span class="readonly-text"> veica mutisko tulkošanu mūsu uzņēmuma vajadzībām šajā laika posmā:</span>
-        </p>
-
-        <label for="start-time">Sākuma laiks:</label>
-        <input type="datetime-local" id="start-time">
-
-        <label for="end-time">Beigu laiks:</label>
-        <input type="datetime-local" id="end-time">
-
-        <h3>Klienta paraksts:</h3>
-        <canvas id="signature-pad" width="500" height="200"></canvas>
-
-        <label for="client-name">Klienta vārds, uzvārds:</label>
-        <input type="text" id="client-name" class="client-name" placeholder="Ievadiet savu vārdu un uzvārdu">
-
-        <div class="hide-in-pdf">
-            <button class="clear-btn" onclick="clearSignature()">Notīrīt parakstu</button>
-            <button class="pdf-btn" onclick="saveAsPDF()">Saglabāt kā PDF</button>
-        </div>
+  <div class="container" id="form-container">
+    <div class="hide-in-pdf">
+      <img id="logo" class="logo" src="https://raw.githubusercontent.com/ivarsskrivanek/tests-veidlapa_2/main/Skrivanek_Logo.jpg" alt="Skrivanek Logo">
     </div>
 
-    <script>
-        const canvas = document.getElementById('signature-pad');
-        const ctx = canvas.getContext('2d');
-        let drawing = false;
-        let lastPos;
-        let logoBase64 = "";
+    <h2>Mutiskā tulkojuma apstiprinājuma veidlapa</h2>
 
-        // Set initial white background
-        function initCanvasBackground() {
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+    <p>
+      <span class="readonly-text">Ar šo apstiprinu, ka </span>
+      <span class="editable-text" contenteditable="true" id="translator-name">VĀRDS UZVĀRDS</span>
+      <span class="readonly-text"> veica mutisko tulkošanu mūsu uzņēmuma vajadzībām šajā laika posmā:</span>
+    </p>
 
-        function getCursorPosition(event) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: (event.clientX || event.touches[0].clientX) - rect.left,
-                y: (event.clientY || event.touches[0].clientY) - rect.top
-            };
-        }
+    <label for="start-time">Sākuma laiks:</label>
+    <input type="datetime-local" id="start-time">
 
-        function startDrawing(event) {
-            event.preventDefault();
-            drawing = true;
-            lastPos = getCursorPosition(event);
-            ctx.strokeStyle = "blue";
-            ctx.lineWidth = 2;
-        }
+    <label for="end-time">Beigu laiks:</label>
+    <input type="datetime-local" id="end-time">
 
-        function stopDrawing(event) {
-            event.preventDefault();
-            drawing = false;
-        }
+    <h3>Klienta paraksts:</h3>
+    <canvas id="signature-pad" width="500" height="200"></canvas>
 
-        function draw(event) {
-            event.preventDefault();
-            if (!drawing) return;
-            const pos = getCursorPosition(event);
-            ctx.beginPath();
-            ctx.moveTo(lastPos.x, lastPos.y);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            lastPos = pos;
-        }
+    <label for="client-name">Klienta vārds, uzvārds:</label>
+    <input type="text" id="client-name" placeholder="Ievadiet savu vārdu un uzvārdu">
 
-        function clearSignature() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            initCanvasBackground();
-        }
+    <div class="hide-in-pdf">
+      <button class="clear-btn" onclick="clearSignature()">Notīrīt parakstu</button>
+      <button class="pdf-btn" onclick="saveAsPDF()">Saglabāt kā PDF</button>
+    </div>
+  </div>
 
-        function formatDateTime(datetimeStr) {
-            const date = new Date(datetimeStr);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${day}.${month}.${year}. ${hours}.${minutes}`;
-        }
+  <script>
+    const canvas = document.getElementById('signature-pad');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let lastPos;
+    let logoBase64 = "";
 
-        async function saveAsPDF() {
-            const formElement = document.getElementById("form-container");
-            const buttons = document.querySelector(".hide-in-pdf");
+    function initCanvasBackground() {
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
-            document.getElementById("logo").style.display = "none";
-            buttons.style.display = "none";
+    function getCursorPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX || event.touches[0].clientX) - rect.left,
+        y: (event.clientY || event.touches[0].clientY) - rect.top
+      };
+    }
 
-            // Add formatted date text to DOM temporarily
-            const startTime = document.getElementById('start-time').value;
-            const endTime = document.getElementById('end-time').value;
+    function startDrawing(event) {
+      event.preventDefault();
+      drawing = true;
+      lastPos = getCursorPosition(event);
+      ctx.strokeStyle = "blue";
+      ctx.lineWidth = 2;
+    }
 
-            const startLabel = document.createElement('div');
-            startLabel.innerText = "Sākuma laiks: " + formatDateTime(startTime);
-            formElement.appendChild(startLabel);
+    function stopDrawing(event) {
+      event.preventDefault();
+      drawing = false;
+    }
 
-            const endLabel = document.createElement('div');
-            endLabel.innerText = "Beigu laiks: " + formatDateTime(endTime);
-            formElement.appendChild(endLabel);
+    function draw(event) {
+      event.preventDefault();
+      if (!drawing) return;
+      const pos = getCursorPosition(event);
+      ctx.beginPath();
+      ctx.moveTo(lastPos.x, lastPos.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastPos = pos;
+    }
 
-            const clientName = document.getElementById("client-name").value;
-            const nameReplacement = document.createElement("div");
-            nameReplacement.innerText = "Klienta vārds, uzvārds: " + clientName;
-            nameReplacement.style.marginTop = "10px";
-            formElement.appendChild(nameReplacement);
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      initCanvasBackground();
+    }
 
-            let canvasImage = await html2canvas(formElement, { scale: 2 });
+    function formatDateTime(datetimeStr) {
+      const date = new Date(datetimeStr);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${day}.${month}.${year}. ${hours}.${minutes}`;
+    }
 
-            document.getElementById("logo").style.display = "block";
-            buttons.style.display = "block";
+    async function saveAsPDF() {
+      const formElement = document.getElementById("form-container");
+      const buttons = document.querySelector(".hide-in-pdf");
 
-            const { jsPDF } = window.jspdf;
-            let pdf = new jsPDF("p", "mm", "a4");
+      document.getElementById("logo").style.display = "none";
+      buttons.style.display = "none";
 
-            if (logoBase64) {
-                let pageWidth = pdf.internal.pageSize.getWidth();
-                let imgWidth = 75;
-                let imgX = (pageWidth - imgWidth) / 2;
-                pdf.addImage(logoBase64, "PNG", imgX, 10, imgWidth, 25);
-            }
+      // Replace inputs with visible text
+      const startTime = document.getElementById('start-time').value;
+      const endTime = document.getElementById('end-time').value;
 
-            let imgWidth = 190;
-            let imgHeight = (canvasImage.height * imgWidth) / canvasImage.width;
-            pdf.addImage(canvasImage.toDataURL("image/png"), "PNG", 10, 50, imgWidth, imgHeight);
-            pdf.save("Mutiska_tulkojuma_apstiprinajums.pdf");
+      const startDiv = document.createElement('div');
+      startDiv.innerText = "Sākuma laiks: " + formatDateTime(startTime);
+      formElement.appendChild(startDiv);
 
-            // Clean up temporary DOM elements
-            formElement.removeChild(startLabel);
-            formElement.removeChild(endLabel);
-            formElement.removeChild(nameReplacement);
-        }
+      const endDiv = document.createElement('div');
+      endDiv.innerText = "Beigu laiks: " + formatDateTime(endTime);
+      formElement.appendChild(endDiv);
 
-        function loadLogo() {
-            fetch("https://raw.githubusercontent.com/ivarsskrivanek/tests-veidlapa_2/main/Skrivanek_Logo.jpg")
-                .then(response => response.blob())
-                .then(blob => {
-                    let reader = new FileReader();
-                    reader.onloadend = function () {
-                        document.getElementById("logo").src = reader.result;
-                        logoBase64 = reader.result;
-                    };
-                    reader.readAsDataURL(blob);
-                })
-                .catch(error => console.error("Failed to load the image:", error));
-        }
+      const clientInput = document.getElementById("client-name");
+      const clientText = document.createElement("div");
+      clientText.innerText = "Klienta vārds, uzvārds: " + clientInput.value;
+      clientText.className = "pdf-only-name";
+      formElement.appendChild(clientText);
 
-        window.onload = function() {
-            loadLogo();
-            initCanvasBackground();
-        };
+      // Hide the real input temporarily
+      clientInput.style.display = "none";
 
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mousemove', draw);
+      const canvasImage = await html2canvas(formElement, { scale: 2 });
 
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchend', stopDrawing);
-        canvas.addEventListener('touchmove', draw);
-    </script>
+      document.getElementById("logo").style.display = "block";
+      buttons.style.display = "block";
+      clientInput.style.display = "block";
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      if (logoBase64) {
+        let pageWidth = pdf.internal.pageSize.getWidth();
+        let imgWidth = 75;
+        let imgX = (pageWidth - imgWidth) / 2;
+        pdf.addImage(logoBase64, "PNG", imgX, 10, imgWidth, 25);
+      }
+
+      let imgWidth = 190;
+      let imgHeight = (canvasImage.height * imgWidth) / canvasImage.width;
+      pdf.addImage(canvasImage.toDataURL("image/png"), "PNG", 10, 50, imgWidth, imgHeight);
+      pdf.save("Mutiska_tulkojuma_apstiprinajums.pdf");
+
+      // Cleanup
+      formElement.removeChild(startDiv);
+      formElement.removeChild(endDiv);
+      formElement.removeChild(clientText);
+    }
+
+    function loadLogo() {
+      fetch("https://raw.githubusercontent.com/ivarsskrivanek/tests-veidlapa_2/main/Skrivanek_Logo.jpg")
+        .then(response => response.blob())
+        .then(blob => {
+          let reader = new FileReader();
+          reader.onloadend = function () {
+            document.getElementById("logo").src = reader.result;
+            logoBase64 = reader.result;
+          };
+          reader.readAsDataURL(blob);
+        })
+        .catch(error => console.error("Failed to load the image:", error));
+    }
+
+    window.onload = function () {
+      loadLogo();
+      initCanvasBackground();
+    };
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchmove', draw);
+  </script>
 </body>
 </html>
