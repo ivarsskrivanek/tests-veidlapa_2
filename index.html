@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <title>Mutiskā tulkojuma apstiprinājuma veidlapa</title>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -77,11 +76,11 @@
       background-color: #007bff;
       color: white;
     }
-
-    /* Added to keep replacement same style */
-    .pdf-only-name {
+    .pdf-replace {
       margin-top: 5px;
+      font-size: 16px;
       font-weight: normal;
+      text-align: left;
     }
   </style>
 </head>
@@ -108,7 +107,7 @@
     <h3>Klienta paraksts:</h3>
     <canvas id="signature-pad" width="500" height="200"></canvas>
 
-    <label for="client-name">Klienta vārds, uzvārds:</label>
+    <label for="client-name" id="client-label">Klienta vārds, uzvārds:</label>
     <input type="text" id="client-name" placeholder="Ievadiet savu vārdu un uzvārdu">
 
     <div class="hide-in-pdf">
@@ -120,8 +119,7 @@
   <script>
     const canvas = document.getElementById('signature-pad');
     const ctx = canvas.getContext('2d');
-    let drawing = false;
-    let lastPos;
+    let drawing = false, lastPos;
     let logoBase64 = "";
 
     function initCanvasBackground() {
@@ -167,6 +165,7 @@
     }
 
     function formatDateTime(datetimeStr) {
+      if (!datetimeStr) return "";
       const date = new Date(datetimeStr);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -179,56 +178,62 @@
     async function saveAsPDF() {
       const formElement = document.getElementById("form-container");
       const buttons = document.querySelector(".hide-in-pdf");
+      const logo = document.getElementById("logo");
+      const clientInput = document.getElementById("client-name");
+      const clientLabel = document.getElementById("client-label");
 
-      document.getElementById("logo").style.display = "none";
+      // Hide interactive UI
+      logo.style.display = "none";
       buttons.style.display = "none";
+      clientInput.style.display = "none";
 
-      // Replace inputs with visible text
+      // Replace input field with static text for PDF
+      const clientText = document.createElement("div");
+      clientText.innerText = "Klienta vārds, uzvārds: " + clientInput.value;
+      clientText.className = "pdf-replace";
+      clientLabel.after(clientText);
+
+      // Add custom date fields
       const startTime = document.getElementById('start-time').value;
       const endTime = document.getElementById('end-time').value;
 
       const startDiv = document.createElement('div');
       startDiv.innerText = "Sākuma laiks: " + formatDateTime(startTime);
+      startDiv.className = "pdf-replace";
       formElement.appendChild(startDiv);
 
       const endDiv = document.createElement('div');
       endDiv.innerText = "Beigu laiks: " + formatDateTime(endTime);
+      endDiv.className = "pdf-replace";
       formElement.appendChild(endDiv);
 
-      const clientInput = document.getElementById("client-name");
-      const clientText = document.createElement("div");
-      clientText.innerText = "Klienta vārds, uzvārds: " + clientInput.value;
-      clientText.className = "pdf-only-name";
-      formElement.appendChild(clientText);
-
-      // Hide the real input temporarily
-      clientInput.style.display = "none";
-
+      // Render to canvas
       const canvasImage = await html2canvas(formElement, { scale: 2 });
 
-      document.getElementById("logo").style.display = "block";
+      // Restore UI
+      logo.style.display = "block";
       buttons.style.display = "block";
       clientInput.style.display = "block";
 
+      formElement.removeChild(clientText);
+      formElement.removeChild(startDiv);
+      formElement.removeChild(endDiv);
+
+      // Generate PDF
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF("p", "mm", "a4");
 
       if (logoBase64) {
-        let pageWidth = pdf.internal.pageSize.getWidth();
-        let imgWidth = 75;
-        let imgX = (pageWidth - imgWidth) / 2;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const imgWidth = 75;
+        const imgX = (pageWidth - imgWidth) / 2;
         pdf.addImage(logoBase64, "PNG", imgX, 10, imgWidth, 25);
       }
 
-      let imgWidth = 190;
-      let imgHeight = (canvasImage.height * imgWidth) / canvasImage.width;
+      const imgWidth = 190;
+      const imgHeight = (canvasImage.height * imgWidth) / canvasImage.width;
       pdf.addImage(canvasImage.toDataURL("image/png"), "PNG", 10, 50, imgWidth, imgHeight);
       pdf.save("Mutiska_tulkojuma_apstiprinajums.pdf");
-
-      // Cleanup
-      formElement.removeChild(startDiv);
-      formElement.removeChild(endDiv);
-      formElement.removeChild(clientText);
     }
 
     function loadLogo() {
@@ -242,7 +247,7 @@
           };
           reader.readAsDataURL(blob);
         })
-        .catch(error => console.error("Failed to load the image:", error));
+        .catch(error => console.error("Failed to load image:", error));
     }
 
     window.onload = function () {
